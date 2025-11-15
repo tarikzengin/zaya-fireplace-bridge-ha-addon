@@ -1,0 +1,43 @@
+---
+name: "Zaya Fireplace Bluetooth Bridge"
+version: "0.1.0"
+slug: "zaya_fireplace_bridge"
+description: "Control Zaya Bluetooth Fireplace over SPP via MQTT"
+
+startup: services
+init: false
+
+arch:
+  - aarch64
+  - armv7
+
+host_network: true
+
+privileged:
+  - NET_ADMIN
+  - NET_RAW
+  - SYS_ADMIN
+
+map:
+  - config
+  - share
+
+options:
+  fireplace_mac: "AA:BB:CC:DD:EE:FF"
+  mqtt_host: "core-mosquitto"
+  mqtt_port: 1883
+  mqtt_username: "mqtt_user"
+  mqtt_password: "mqtt_pass"
+  mqtt_command_topic: "zaya/fireplace/command"
+  mqtt_state_topic: "zaya/fireplace/state"
+
+schema:
+  fireplace_mac: str
+  mqtt_host: str
+  mqtt_port: int
+  mqtt_username: str
+  mqtt_password: str
+  mqtt_command_topic: str
+  mqtt_state_topic: str
+
+image: "local/zaya_fireplace_bridge"
