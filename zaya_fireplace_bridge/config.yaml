@@ -39,5 +39,3 @@ schema:
   mqtt_password: str
   mqtt_command_topic: str
   mqtt_state_topic: str
-
-image: "local/zaya_fireplace_bridge"
