@@ -10,9 +10,12 @@ RUN apk add --no-cache \
     bluez-btmgmt \
     bash
 
-RUN pip3 install --no-cache-dir \
-    pybluez \
-    paho-mqtt
+# Virtualenv oluştur ve pip paketlerini içine kur
+RUN python3 -m venv /venv \
+    && . /venv/bin/activate \
+    && pip install --no-cache-dir pybluez paho-mqtt
+
+ENV PATH="/venv/bin:$PATH"
 
 WORKDIR /usr/src/app
 COPY run.sh /run.sh
