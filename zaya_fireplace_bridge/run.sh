@@ -3,7 +3,7 @@ set -e
 
 echo "[Zaya Bridge] Starting service..."
 
-# Add-on config dosyasından ayarları oku
+# Options.json oku
 if [ -f /data/options.json ]; then
   export FIREPLACE_MAC=$(jq -r '.fireplace_mac' /data/options.json)
   export MQTT_HOST=$(jq -r '.mqtt_host' /data/options.json)
@@ -13,5 +13,9 @@ if [ -f /data/options.json ]; then
   export MQTT_COMMAND_TOPIC=$(jq -r '.mqtt_command_topic' /data/options.json)
   export MQTT_STATE_TOPIC=$(jq -r '.mqtt_state_topic' /data/options.json)
 fi
+
+echo "[RFComm] Binding RFCOMM..."
+rfcomm release 0 || true
+rfcomm bind 0 $FIREPLACE_MAC 1
 
 python3 /usr/src/app/zaya_bridge.py
