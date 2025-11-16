@@ -12,11 +12,6 @@ arch:
   - armv7
   - amd64
 
-build_from:
-  aarch64: "ghcr.io/home-assistant/aarch64-base-debian:latest"
-  armv7: "ghcr.io/home-assistant/armv7-base-debian:latest"
-  amd64: "ghcr.io/home-assistant/amd64-base-debian:latest"
-
 host_network: true
 
 privileged:
