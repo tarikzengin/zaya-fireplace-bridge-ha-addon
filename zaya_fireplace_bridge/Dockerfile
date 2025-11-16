@@ -1,16 +1,19 @@
-ARG BUILD_FROM=ghcr.io/home-assistant/aarch64-base:3.19
+ARG BUILD_FROM=ghcr.io/home-assistant/aarch64-base-debian:latest
 FROM ${BUILD_FROM}
 
-RUN apk add --no-cache \
-    python3 \
-    py3-pip \
-    bluez \
-    bluez-deprecated \
-    bluez-libs \
-    bluez-btmgmt \
-    bash
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        python3 \
+        python3-pip \
+        python3-venv \
+        bluetooth \
+        bluez \
+        bluez-tools \
+        jq \
+        bash && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Virtualenv oluştur ve pip paketlerini içine kur
+# Virtualenv
 RUN python3 -m venv /venv \
     && . /venv/bin/activate \
     && pip install --no-cache-dir pybluez paho-mqtt
