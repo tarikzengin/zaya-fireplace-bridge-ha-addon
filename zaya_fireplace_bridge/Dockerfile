@@ -1,4 +1,4 @@
-ARG BUILD_FROM=ghcr.io/home-assistant/aarch64-base-debian:latest
+ARG BUILD_FROM
 FROM ${BUILD_FROM}
 
 RUN apt-get update && \
@@ -13,7 +13,6 @@ RUN apt-get update && \
         bash && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Virtualenv
 RUN python3 -m venv /venv \
     && . /venv/bin/activate \
     && pip install --no-cache-dir pybluez paho-mqtt
