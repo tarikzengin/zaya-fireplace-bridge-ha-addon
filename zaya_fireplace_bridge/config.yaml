@@ -1,6 +1,5 @@
----
 name: "Zaya Fireplace Bluetooth Bridge"
-version: "0.1.2"
+version: "0.1.3"  
 slug: "zaya_fireplace_bridge"
 description: "Control Zaya Bluetooth Fireplace via Bluetooth using MQTT"
 
@@ -14,17 +13,14 @@ arch:
 
 host_network: true
 
-privileged:
+full_access: true           # Docker'da --privileged gibi, donanıma tam erişim
+privileged:                 # rfcomm için network/admin hakları
   - NET_ADMIN
-  - NET_RAW
   - SYS_ADMIN
 
-map:
-  - config
-  - share
 
 options:
-  fireplace_mac: "AA:BB:CC:DD:EE:FF"
+  fireplace_mac: "0A:B0:76:CC:A3:7D"
   mqtt_host: "core-mosquitto"
   mqtt_port: 1883
   mqtt_username: "mqtt_user"
@@ -40,4 +36,3 @@ schema:
   mqtt_password: str
   mqtt_command_topic: str
   mqtt_state_topic: str
-
