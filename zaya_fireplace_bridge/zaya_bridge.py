@@ -17,6 +17,7 @@ MQTT_USERNAME = os.getenv("MQTT_USERNAME", "")
 MQTT_PASSWORD = os.getenv("MQTT_PASSWORD", "")
 MQTT_COMMAND_TOPIC = os.getenv("MQTT_COMMAND_TOPIC", "zaya/fireplace/command")
 MQTT_STATE_TOPIC = os.getenv("MQTT_STATE_TOPIC", "zaya/fireplace/state")
+MQTT_STATUS_TOPIC = os.getenv("MQTT_STATUS_TOPIC", MQTT_STATE_TOPIC + "/status")
 
 RFCOMM_DEVICE = os.getenv("RFCOMM_DEVICE", "/dev/rfcomm0")
 
@@ -75,6 +76,8 @@ class ZayaFireplaceBridge:
         print(f"[MQTT] Connected with result {rc}")
         client.subscribe(MQTT_COMMAND_TOPIC)
         print(f"[MQTT] Subscribed to {MQTT_COMMAND_TOPIC}")
+        # MQTT bağlanınca statüyü yayınla
+        self.publish_status("connected_mqtt")
 
     def mqtt_on_message(self, client, userdata, msg):
         payload = msg.payload.decode().strip()
@@ -83,6 +86,21 @@ class ZayaFireplaceBridge:
 
     def mqtt_on_disconnect(self, client, userdata, rc, properties=None):
         print(f"[MQTT] MQTT disconnected: {rc}")
+        self.publish_status("mqtt_disconnected", "MQTT disconnected")
+
+    # ------------------------------------------------------------
+    #  STATUS PUBLISH
+    # ------------------------------------------------------------
+    def publish_status(self, status, error=None):
+        """Bağlantı/statü bilgisini ayrı bir topic'e gönder."""
+        payload = {"status": status}
+        if error:
+            payload["error"] = str(error)
+        try:
+            self.mqtt.publish(MQTT_STATUS_TOPIC, json.dumps(payload), retain=True)
+            print(f"[MQTT] Status published: {payload}")
+        except Exception as e:
+            print(f"[MQTT] Failed to publish status: {e}")
 
     # ------------------------------------------------------------
     #  RFCOMM / SERIAL BAĞLANTI
@@ -100,9 +118,11 @@ class ZayaFireplaceBridge:
                 write_timeout=2,
             )
             print("[SERIAL] Opened.")
+            self.publish_status("connected_serial")
         except Exception as e:
             print(f"[SERIAL] Failed to open {RFCOMM_DEVICE}: {e}")
             self.ser = None
+            self.publish_status("serial_error", e)
 
     def close_serial(self):
         if self.ser:
@@ -112,6 +132,7 @@ class ZayaFireplaceBridge:
                 pass
         self.ser = None
         print("[SERIAL] Closed.")
+        self.publish_status("serial_closed")
 
     # ------------------------------------------------------------
     #  RAW HEX GÖNDERME (RAW:xxxx için)
@@ -122,6 +143,7 @@ class ZayaFireplaceBridge:
 
         if not self.ser or not self.ser.is_open:
             print("[SERIAL] Not open — command cancelled")
+            self.publish_status("serial_error", "Not open for RAW send")
             return
 
         try:
@@ -133,6 +155,7 @@ class ZayaFireplaceBridge:
             self.ser.flush()
         except Exception as e:
             print(f"[SERIAL] Send failed: {e}")
+            self.publish_status("serial_error", e)
             self.close_serial()
 
     # ------------------------------------------------------------
@@ -201,6 +224,7 @@ class ZayaFireplaceBridge:
 
         if not self.ser or not self.ser.is_open:
             print("[SERIAL] Not open — frame cancelled")
+            self.publish_status("serial_error", "Not open for frame send")
             return
 
         try:
@@ -209,6 +233,7 @@ class ZayaFireplaceBridge:
             self.ser.flush()
         except Exception as e:
             print(f"[SERIAL] Send failed: {e}")
+            self.publish_status("serial_error", e)
             self.close_serial()
 
     # ------------------------------------------------------------
@@ -280,8 +305,11 @@ class ZayaFireplaceBridge:
                     with self.state_lock:
                         self.state.update(decoded)
                     self.publish_full_state()
+                    # Cihazdan valid frame aldık, bağlantı iyi
+                    self.publish_status("device_ok")
             except Exception as e:
                 print(f"[SERIAL] Read error: {e}")
+                self.publish_status("serial_error", e)
                 self.close_serial()
                 time.sleep(2)
 
@@ -338,12 +366,14 @@ class ZayaFireplaceBridge:
                 data = json.loads(cmd_stripped)
             except Exception as e:
                 print(f"[CMD] Invalid JSON payload: {e} -> {cmd_stripped}")
+                self.publish_status("command_error", e)
                 return
 
             if isinstance(data, dict):
                 self.apply_state_update(data)
             else:
                 print("[CMD] JSON payload must be an object")
+                self.publish_status("command_error", "JSON not an object")
             return
 
         upper = cmd_stripped.upper()
@@ -364,6 +394,7 @@ class ZayaFireplaceBridge:
             return
 
         print(f"[CMD] Invalid or undefined command: {cmd_stripped}")
+        self.publish_status("command_error", "Unknown command")
 
     # ------------------------------------------------------------
     #  MAIN LOOP
@@ -385,8 +416,9 @@ class ZayaFireplaceBridge:
         t_serial.daemon = True
         t_serial.start()
 
-        # İlk default state'i publish et
+        # İlk default state'i ve başlangıç statüsünü publish et
         self.publish_full_state()
+        self.publish_status("starting")
 
         # Ana thread sadece hayatta kalsın
         while True:

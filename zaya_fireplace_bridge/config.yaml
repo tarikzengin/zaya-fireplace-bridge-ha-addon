@@ -1,6 +1,6 @@
 ---
 name: "Zaya Fireplace Bluetooth Bridge"
-version: "0.1.1"
+version: "0.1.2"
 slug: "zaya_fireplace_bridge"
 description: "Control Zaya Bluetooth Fireplace via Bluetooth using MQTT"
 
