@@ -1,21 +1,24 @@
 ARG BUILD_FROM
 FROM ${BUILD_FROM}
 
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-        python3 \
-        python3-pip \
-        python3-venv \
-        bluetooth \
-        bluez \
-        bluez-tools \
-        jq \
-        bash && \
-    apt-get clean && rm -rf /var/lib/apt/lists/*
+# Alpine tabanlı Home Assistant imajında paketler APK ile kuruluyor
+RUN apk add --no-cache \
+    python3 \
+    py3-pip \
+    py3-virtualenv \
+    bluez \
+    bluez-deprecated \
+    bluez-libs \
+    bluez-btmgmt \
+    jq \
+    bash
 
+# Virtualenv oluştur ve içine bağımlılıkları kur
 RUN python3 -m venv /venv \
     && . /venv/bin/activate \
-    && pip install --no-cache-dir pybluez paho-mqtt
+    # PyBluez klasik paket yeni setuptools ile patlıyor,
+    # bu yüzden fork olan pybluez2'yi kullanıyoruz.
+    && pip install --no-cache-dir pybluez2 paho-mqtt
 
 ENV PATH="/venv/bin:$PATH"
 
